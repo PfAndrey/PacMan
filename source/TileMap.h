@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TILEMAP_H
+#define TILEMAP_H
 
 #include "Geometry.h"
 #include <vector>
@@ -168,6 +169,8 @@ private:
 	T** m_map;
 	int m_height,m_width;
 };
+
+#endif TILEMAP_H
 
 
 

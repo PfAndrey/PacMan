@@ -1,4 +1,4 @@
-#ifndef  GAMEENGINE_H
+#ifndef GAMEENGINE_H
 #define GAMEENGINE_H
 
 #include <SFML/Graphics.hpp>
