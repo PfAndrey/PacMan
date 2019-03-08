@@ -2,122 +2,6 @@
 #include "GameEngine.h"
 #include <assert.h>
 
-float toFloat(const std::string& str)
-{
-	return std::stof(str);
-}
-
-int toInt(const std::string& str)
-{
-	return std::stoi(str);
-}
-
-bool toBool(const std::string& str)
-{
-	if (str == "true" || str == "True" || str == "TRUE")
-		return true;
-	return false;
-}
-
-namespace math
-{
-	int sign(float value)
-	{
-		return (value > 0) - (value < 0);
-	}
-}
-void drawLinearSprite_v(sf::Sprite sprite, const sf::Rect<int>& draw_area, sf::RenderWindow* render_window)
-{
-	if (!draw_area.height)
-		return;
-
-	int k = draw_area.height / abs(sprite.getTextureRect().height);
-	int off_set = draw_area.height % abs(sprite.getTextureRect().height);
-
-	for (int i = 0; i < k; ++i)
-	{
-		sprite.setPosition(draw_area.left, i * 32 + draw_area.top);
-		render_window->draw(sprite);
-	}
-	auto new_rect = sprite.getTextureRect();
-	new_rect.height = off_set;
-	sprite.setTextureRect(new_rect);
-	sprite.setPosition(draw_area.left, k * 32 + draw_area.top);
-	render_window->draw(sprite);
-}
-
-void drawLinearSprite_h(sf::Sprite sprite, const sf::Rect<int>& draw_area, sf::RenderWindow* render_window)
-{
-	if (!draw_area.width)
-		return;
-
-	int k = draw_area.width / abs(sprite.getTextureRect().width);
-	int off_set = draw_area.width % abs(sprite.getTextureRect().width);
-
-	for (int i = 0; i < k; ++i)
-	{
-		sprite.setPosition(i * 32 + draw_area.left, draw_area.top);
-		render_window->draw(sprite);
-	}
-	auto new_rect = sprite.getTextureRect();
-	new_rect.width = off_set;
-	sprite.setTextureRect(new_rect);
-	sprite.setPosition(k * 32 + draw_area.left, draw_area.top);
-	render_window->draw(sprite);
-}
-
-//----------------------------------------------------------------------------------------------
-Property::Property()
-{
-	m_type = Type::NoInit;
-}
-
-
-Property::Property(bool bool_value)
-{
-	m_type = Type::Bool;
-	bool_data = bool_value;
-}
-Property::Property(int int_value)
-{
-	m_type = Type::Int;
-	int_data = int_value;
-}
-Property::Property(const std::string& string_value)
-{
-	m_type = Type::String;
-	string_data = string_value;
-}
-Property::Property(float float_value)
-{
-	m_type = Type::Float;
-	float_data = float_value;
-}
-
-bool Property::asBool() const
-{
-	assert(m_type == Type::Bool);
-	return bool_data;
-}
-int Property::asInt() const
-{
-	assert(m_type == Type::Int);
-	return int_data;
-}
-float Property::asFloat() const
-{
-	assert(m_type == Type::Float);
-	return float_data;
-}
-const std::string& Property::asString() const
-{
-	assert(m_type == Type::String);
-	return string_data;
-}
-bool Property::isValid() const
-{
-	return m_type != Type::NoInit;
-}
 
 //----------------------------------------------------------------------------------------------
 void CEventManager::pushEvent(const sf::Event& event)
@@ -276,20 +160,7 @@ void CGameObject::setName(const std::string& name)
 const std::string&  CGameObject::getName() const
 {
 	return m_name;
-}
-void CGameObject::setProperty(const std::string& name, const Property& property)
-{
-	m_properties[name] = property;
-	onPropertySet(name);
-};
-Property CGameObject::getProperty(const std::string& name) const
-{
-	onPropertyGet(name);
-	return const_cast<CGameObject*>(this)->m_properties[name];
-};
-
-
- 
+} 
 
 void CGameObject::disable()
 {
@@ -333,7 +204,6 @@ CGameObject* CGameObject::addObject(CGameObject* object)
 {
 	m_objects.push_back(object);
 	object->setParent(this);
-	object->onActivated();
 	if (m_started)
 	{
 		object->m_started = true;
@@ -406,21 +276,6 @@ void CGameObject::removeObject(CGameObject* object)
 	  };
 	  m_preupdate_actions.push_back(action);
 }
-void CGameObject::onPropertySet(const std::string& name)
-{
-	if (name == "x")
-		setPosition(m_properties["x"].asFloat(),getPosition().y);
-	if (name == "y")
-		setPosition(getPosition().x, m_properties["y"].asFloat());
-	if (name == "name")
-		setName(m_properties["name"].asString());
-
-}
-void CGameObject::onPropertyGet(const std::string& name) const
-{
-
-}
-
 
 void CGameObject::moveToBack()
 {
@@ -888,60 +743,6 @@ AnimType CSpriteSheet::animType() const
 	return m_anim_type;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------
- 
- Pallete::Pallete()
- {
- }
-
- 	 void Pallete::create(const std::initializer_list<sf::Color>& original_colors, const std::initializer_list<sf::Color>& swaped_colors)
-	 {
-		 assert(original_colors.size() == swaped_colors.size());
-		 int arr_size = original_colors.size();
-
-		   const sf::String frag_shader =
-			 "const int arr_size = " + toString(arr_size) + ";"\
-			 "uniform vec3 color1[arr_size];"\
-			 "uniform vec3 color2[arr_size];"\
-			 "uniform sampler2D texture;"\
-			 "void main()"\
-			 "{"\
-			 "vec4 myindex = texture2D(texture, gl_TexCoord[0].xy);"\
-			 "vec3 index = vec3(myindex.r,myindex.g,myindex.b);"\
-			 "gl_FragColor = myindex;"\
-			 "for (int i=0; i < arr_size; ++i)"\
-			   "if (index == color1[i]) {"\
-			   "gl_FragColor = vec4(color2[i].r,color2[i].g,color2[i].b,myindex.a);"\
-			   "break; }"\
-			 "}";
-		     
-			m_shader.loadFromMemory(frag_shader, sf::Shader::Fragment);
-			auto colors1 = new sf::Glsl::Vec3[arr_size];
-			auto colors2 = new sf::Glsl::Vec3[arr_size];
-			int i = 0;
-			for (auto original_color : original_colors)
-				colors1[i++] = sf::Glsl::Vec3(original_color.r / 255.f, original_color.g / 255.f, original_color.b / 255.f);
-			i = 0;
-			for (auto swaped_color : swaped_colors)
-			  colors2[i++] = sf::Glsl::Vec3(swaped_color.r / 255.f, swaped_color.g / 255.f, swaped_color.b / 255.f);
-		    m_shader.setUniformArray("color1", (sf::Glsl::Vec3*)colors1, arr_size);
-			m_shader.setUniformArray("color2", (sf::Glsl::Vec3*)colors2, arr_size);
-			m_shader.setUniform("texture", sf::Shader::CurrentTexture);
-			delete[] colors1;
-			delete[] colors2;
-	 }
-
-	 void Pallete::apply()
-	 {
-	 
-		 sf::Shader::bind(&m_shader);
-	 }
-	 void Pallete::cancel()
-	 {
-		 sf::Shader::bind(NULL);
-	 }
-//-------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
 	 Animator::~Animator()
 	 {
 		 for (auto anim : m_animations)
@@ -1005,22 +806,9 @@ void Animator::draw(sf::RenderWindow* wnd)
 {
 	if (isVisible())
 	{
-		if (m_pallete)
-			m_pallete->apply();
-
-
  		m_current_animation->setPosition(getPosition());
 		m_current_animation->draw(wnd);	 
-
-		if (m_pallete)
-			m_pallete->cancel();
 	}
-}
-
-
-void Animator::setPallete(Pallete* pallete)
-{
-	m_pallete = pallete;
 }
 
 void Animator::flipX(bool value)
@@ -1044,8 +832,6 @@ void Animator::setAnimOffset(float index)
 	for (auto& animation : m_animations)
 		animation.second->setAnimOffset(index);
 }
-
-
 
 void Animator::setSpeed(const std::string& anim, float speed)
 {
@@ -1302,67 +1088,3 @@ void WaypointSystem::update(int delta_time)
 		}
 	}
 }
-//-------------------------------------------------------------------------------------------------------
-Vector  collsionResponse(const Rect& own_rect, const Vector& own_speed, const Rect& other_rect, const Vector& other_speed, const float delta_time, ECollisionTag& collision_tag)
-{
-	Vector new_pos = own_rect.leftTop();
-
-	Rect intersection = other_rect.getIntersection(own_rect);
-	Vector delta_speed = own_speed - other_speed;
-	
-	enum Axis {none,vertical,horizontal} axis = none;
- 
-	if (!intersection.width() || !intersection.height())
-		return new_pos;
-
-	double dt = 0;
-	if (delta_speed.x && delta_speed.y)
-	{
-		float dx_t = intersection.width() / abs(delta_speed.x);
-		float dy_t = intersection.height() / abs(delta_speed.y);
-		dt = std::min(dx_t,dy_t);
-		axis = (dx_t > dy_t) ? vertical : horizontal;
-	}
-	else if (delta_speed.x)
-	{
-		dt = intersection.width() / abs(delta_speed.x);
-		axis = horizontal;
-	}
-	else if (delta_speed.y)
-	{
-		dt = intersection.height() / abs(delta_speed.y);
-		axis = vertical;
-	}
-
-	if (dt > delta_time)
-		dt = delta_time;
-
-	new_pos -=  dt*delta_speed;
-
-//	if (delta_time)
-//	{
-//		new_pos.x -= math::sign(delta_speed.x)*0.1;
-//		new_pos.y -= math::sign(delta_speed.y)*0.1;
-//	}
-
- 
-	if (axis == vertical)
-	{
-		if (intersection.top() == other_rect.top())
-			collision_tag |= ECollisionTag::floor;
-		else  if (intersection.bottom() == other_rect.bottom())
-			collision_tag |= ECollisionTag::cell;
-		 
-	}
-	else if (axis == horizontal) 
-	{
-		if (intersection.left() == other_rect.left())
-			collision_tag |= ECollisionTag::right;
-		else if (intersection.right() == other_rect.right())
-			collision_tag |= ECollisionTag::left;
-	}
- 
-	//assert((new_pos - own_rect.leftTop()).length() < 100.f);
-	return new_pos;
-}
-

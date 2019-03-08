@@ -191,7 +191,6 @@ public:
 	bool eat(int x, int y);
 	void fill(CWalls* walls);
 	void reset();
-	void clearRect(int x1, int y1, int w, int h);
 	int amount() const;
 	int maxDots() const;
 private:
@@ -246,8 +245,8 @@ public:
 	Type type() const;
 	virtual void update(const CGhostStateContex& contex) = 0;
 	virtual void draw(const CGhostStateContex&, sf::RenderWindow* window);
-	virtual void activate(const CGhostStateContex& contex) {};
-	virtual void deactivate(const CGhostStateContex& contex) {};
+    virtual void activate(const CGhostStateContex& contex) {};
+    virtual void deactivate(const CGhostStateContex& contex) {};
 private:
 	Type m_type;
 };

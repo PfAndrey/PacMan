@@ -18,55 +18,10 @@
 template <typename T>
 std::string toString(const T& param)
 {
-	std::stringstream sstream;
-	sstream << param;
-	return sstream.str();
+    std::stringstream sstream;
+    sstream << param;
+    return sstream.str();
 }
-
-float toFloat(const std::string& str);
-int toInt(const std::string& str);
-bool toBool(const std::string& str);
-
-namespace math
-{
-	int sign(float value);
-
-	template <typename T>
-	T clamp(const T& value, const T& min, const T& max)
-	{
-		if (value < min)
-			return min; 
-		if (value > max)
-			return max;
-		return value;
-	}
-}
-
-void drawLinearSprite_v(sf::Sprite sprite, const sf::Rect<int>& draw_area, sf::RenderWindow* render_window);
-void drawLinearSprite_h(sf::Sprite sprite, const sf::Rect<int>& draw_area, sf::RenderWindow* render_window);
-
-class Property
-{
-public:
-	Property();
-	Property(bool bool_value);
-	Property(int int_value);
-	Property(const std::string& string_value);
-	Property(float float_value);
-	bool asBool() const;
-	int asInt() const;
-	float asFloat() const;
-	const std::string& asString() const;
-	bool isValid() const;
-
-private:
-	int int_data;
-	float float_data;
-	std::string string_data;
-	bool bool_data;
-	enum class Type { NoInit, Bool, Int, Float, String } m_type;
-};
-
 
 class CGameObject
 {
@@ -75,8 +30,6 @@ public:
 	virtual ~CGameObject();
 	void setName(const std::string& name);
 	const std::string& getName() const;
-	void setProperty(const std::string& name, const Property& property);
-	Property getProperty(const std::string& name) const;
 	void setParent(CGameObject* game_object);
 	CGameObject* getParent() const;
 	CGameObject* addObject(CGameObject* object);
@@ -84,49 +37,38 @@ public:
 	void moveToBack();
 	void moveToFront();
 	void moveUnderTo(CGameObject* obj);
-	template <typename T>
-	T* findObjectByName(const std::string& name)
-	{
-		auto it = std::find_if(m_objects.begin(), m_objects.end(), [this, &name](const CGameObject* obj) -> bool { return obj->getName() == name;  });
-		if (it != m_objects.end())
-			return dynamic_cast<T*>(*it);
+    template <typename T>
+    T* findObjectByName(const std::string& name)
+    {
+        auto it = std::find_if(m_objects.begin(), m_objects.end(), [this, &name](const CGameObject* obj) -> bool { return obj->getName() == name;  });
+        if (it != m_objects.end())
+            return dynamic_cast<T*>(*it);
 
-		return nullptr;
-	}
-	template <typename T>
-	T* findObjectByType()
-	{
-		for (auto& obj : m_objects)
-			if (dynamic_cast<T*>(obj) != nullptr)
-				return (T*)obj;
-		return nullptr;
-	}
-	template <typename T>
-	std::vector<T*> findObjectsByType()
-	{
-		std::vector<T*> objects;
-		for (auto& obj : m_objects)
-		{
-			if (dynamic_cast<T*>(obj) != nullptr)
-				objects.push_back((T*)obj);
-		 
-			auto objects_temp = obj->findObjectsByType<T>();
-			if (!objects_temp.empty())
-				objects.insert(objects.end(), objects_temp.begin(), objects_temp.end());
-		}
-		return objects;
-	}
-	template <typename T>
-	T* castTo()
-	{
-		assert(dynamic_cast<T*>(this));
-		return (T*)this;
-	}
-	template <typename T>
-	bool isTypeOf() const
-	{
-		return (dynamic_cast<const T*>(this) != NULL);
-	}
+        return nullptr;
+    }
+    template <typename T>
+    T* findObjectByType()
+    {
+        for (auto& obj : m_objects)
+            if (dynamic_cast<T*>(obj) != nullptr)
+                return (T*)obj;
+        return nullptr;
+    }
+    template <typename T>
+    std::vector<T*> findObjectsByType()
+    {
+        std::vector<T*> objects;
+        for (auto& obj : m_objects)
+        {
+            if (dynamic_cast<T*>(obj) != nullptr)
+                objects.push_back((T*)obj);
+
+            auto objects_temp = obj->findObjectsByType<T>();
+            if (!objects_temp.empty())
+                objects.insert(objects.end(), objects_temp.begin(), objects_temp.end());
+        }
+        return objects;
+    }
 	void foreachObject(std::function<void(CGameObject*)> predicate);
 	void foreachObject(std::function<void(CGameObject*, bool& need_break)> predicate);
 	void removeObject(CGameObject* obj);
@@ -154,15 +96,10 @@ public:
 	virtual Rect getBounds() const;
 	virtual void setBounds(const Rect& rect);
 	void setSize(const Vector& size);
-protected:
-	virtual void onPropertySet(const std::string& name);
-	virtual void onPropertyGet(const std::string& name) const;
-	virtual void onActivated() {};
 private:
 	std::string m_name;
 	bool m_started = false;
 	static std::vector<std::function<void()>> m_preupdate_actions;
-	std::map<std::string, Property> m_properties;
 	CGameObject* m_parent;
 	std::list<CGameObject*> m_objects;
 	Vector m_direction;
@@ -240,7 +177,6 @@ ResourceManager<T>::~ResourceManager()
 		}
 }
 
-
 class CInputManager
 {
 private:
@@ -256,11 +192,9 @@ public:
 	void update(int delta_time);
 };
 
-
 using CTextureManager = ResourceManager<sf::Texture>;
 using CFontManager = ResourceManager<sf::Font>;
 using CSoundManager = ResourceManager<sf::SoundBuffer>;
-
 
 class CGame
 {
@@ -294,9 +228,6 @@ public:
 	Vector screenSize() const;
 };
 
-
-
-
 class CTimer : public CGameObject
 {
 public:
@@ -313,7 +244,6 @@ public:
 private:
 	std::list< std::pair<sf::Time, std::function<void()>>> m_call_back_list;
 };
-
 
 enum class AnimType { manual, forward, forward_stop, forward_cycle, forward_backward_cycle };
 
@@ -354,18 +284,6 @@ private:
 	float m_index = 0;
 };
 
-class Pallete
-{
-public:
-	Pallete();
-	void create(const std::initializer_list<sf::Color>& original_colors, const std::initializer_list<sf::Color>& swaped_colors);
-	void apply();
-	void cancel();
-private:
-	sf::Shader m_shader;
-	int m_old_shader = 0;
-};
-
 class Animator : public CGameObject
 {
 public:
@@ -381,17 +299,14 @@ public:
 	void setSpeed(const std::string& animation, float speed);
 	void setSpriteOffset(const std::string& anim_name, int sprite_index, const Vector& value);
 	void setAnimOffset(float index);
-	void setPallete(Pallete* pallete);
 	void scale(float fX, float fY);
 	CSpriteSheet* get(const std::string& str);
 private:
-	Pallete* m_pallete = NULL;
 	std::unordered_map<std::string, CSpriteSheet*> m_animations;
 	CSpriteSheet* m_current_animation = NULL;
 	std::string last_anim_name;
 	bool m_flipped = false;
 };
-
 
 class CFlowText : public CGameObject
 {
@@ -447,29 +362,12 @@ private:
 	sf::Text m_text;
 };
 
-enum class ECollisionTag : int { none = 0, cell = 1, floor = 2, left = 4, right = 8, up = cell, down = floor };
-
-inline ECollisionTag operator |= (ECollisionTag& one, const ECollisionTag& two)
-{
-	one = ECollisionTag(static_cast<int>(one) | static_cast<int>(two));
-	return one;
-}
-
-inline bool operator & (ECollisionTag one, ECollisionTag  two)
-{
-	return  static_cast<int>(one) & static_cast<int>(two);
-}
-
-Vector  collsionResponse(const Rect& own_rect, const Vector& own_speed, const Rect& other_rect, const Vector& other_speed, const float delta_time, ECollisionTag& collision_tag);
-
-
 class WaypointSystem : public CGameObject
 {
 private:
 	std::vector<Vector> m_path;
 	float m_length = 0;
 	float m_speed = 0;
-
 public:
 	CGameObject* getObject();
 	void addPath(const std::vector<Vector>& path, float speed, bool align = false);

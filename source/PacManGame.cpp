@@ -78,7 +78,7 @@ CPacManGameScene::CPacManGameScene()
 
 	addObject(m_pacman = new CPacman(m_walls));
 
-	char* ghost_names[]{ "Binky", "Pinky", "Inky", "Clyde" };
+    const char* const ghost_names[]{ "Binky", "Pinky", "Inky", "Clyde" };
 	sf::Color ghost_colors[] = { sf::Color(255,0,0),sf::Color(255,105,180), sf::Color(15, 255, 225), sf::Color(255, 140, 0) };
 	CScatterState::Corner ghost_corners[] = { CScatterState::Corner::left_bottom, CScatterState::Corner::left_up, CScatterState::Corner::right_bottom, CScatterState::Corner::right_up };
 	Vector ghost_house_door_cell(13.5, 12);
@@ -635,22 +635,20 @@ CPacManGame* CPacManGame::instance()
 }
 
 CPacManGame::CPacManGame() : CGame("PacMan", {1000,850})
- {
-	textureManager().loadFromFile("texture", "res/sprites.png");
-	fontManager().loadFromFile("arial", "res/arial.ttf");
-	fontManager().loadFromFile("menu_font", "res/menu_font.ttf");
-	fontManager().loadFromFile("main_font", "res/main_font.ttf");
-	fontManager().loadFromFile("score_font", "res/score_font.ttf");
-
-	soundManager().loadFromFile("beginning", "res/begininng_sound.wav");
-	soundManager().loadFromFile("eat_dot", "res/eat_dot_sound.wav");
-	soundManager().loadFromFile("ghosts_frightened", "res/ghosts_frightened_sound.wav");
-	soundManager().loadFromFile("ghost_eaten", "res/ghost_eaten_sound.wav");
-	soundManager().loadFromFile("life_lost", "res/life_lost_sound.wav");
-	soundManager().loadFromFile("ghost_regenerate", "res/ghost_regenerate_sound.wav");
-
-	textureManager().get("texture")->setSmooth(true);
- }
+{
+    textureManager().loadFromFile("texture", "res/sprites.png");
+    fontManager().loadFromFile("arial", "res/arial.ttf");
+    fontManager().loadFromFile("menu_font", "res/menu_font.ttf");
+    fontManager().loadFromFile("main_font", "res/main_font.ttf");
+    fontManager().loadFromFile("score_font", "res/score_font.ttf");
+    soundManager().loadFromFile("beginning", "res/begininng_sound.wav");
+    soundManager().loadFromFile("eat_dot", "res/eat_dot_sound.wav");
+    soundManager().loadFromFile("ghosts_frightened", "res/ghosts_frightened_sound.wav");
+    soundManager().loadFromFile("ghost_eaten", "res/ghost_eaten_sound.wav");
+    soundManager().loadFromFile("life_lost", "res/life_lost_sound.wav");
+    soundManager().loadFromFile("ghost_regenerate", "res/ghost_regenerate_sound.wav");
+    textureManager().get("texture")->setSmooth(true);
+}
 
 
 CPacManGame::~CPacManGame()
@@ -1372,6 +1370,7 @@ bool CDots::eat(int x, int y)
 
 void CDots::fill(CWalls* walls)
 {
+    m_saved_map->clear();
 	m_dots_counter = 0;
 	for (int x = 0; x < m_dots_map->width(); ++x)
 	for (int y = 0; y < m_dots_map->height(); ++y)
@@ -1397,17 +1396,6 @@ void CDots::reset()
 int CDots::amount() const
 {
 	return m_dots_counter;
-}
-
-void CDots::clearRect(int x1, int y1, int w, int h)
-{
-	for (int x = x1; x < x1 + w; ++x)
-		for (int y = y1; y < y1 + h; ++y)
-			if (m_dots_map->getCell(x, y) == true)
-			{
-				m_dots_map->setCell(x, y, false); 
-				m_dots_counter--;
-			}
 }
 
 //-----------------------------------------------------------------------------
