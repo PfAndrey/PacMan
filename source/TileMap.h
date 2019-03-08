@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Geometry.h"
-#include <Vector>
+#include <vector>
 #include <functional>
 
 const static Vector directions[] = { Vector::zero,Vector::left, Vector::up,Vector::down,Vector::right };

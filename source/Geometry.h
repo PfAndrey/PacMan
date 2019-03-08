@@ -1,18 +1,12 @@
-#pragma once
-
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-
-#include "SFML\Graphics.hpp"
+#include <SFML/Graphics.hpp>
 #include <unordered_map>
 #include <queue>
 #include <map>
 #include <iostream>
 #include "assert.h"
-
- 
-
 
 class Vector
 {

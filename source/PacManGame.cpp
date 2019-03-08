@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include "GhostStates.h"
+#include <math.h>
 
 //--------------------------------------------------------------------------------------------
 void CPacManGameScene::addScore(int score)
@@ -1264,7 +1265,7 @@ CWalls::~CWalls()
 			
 Vector CWalls::toMapCoordinates(const Vector& global_pos)
 {
-	return{ round(global_pos.x / CLASTER_SIZE), round(global_pos.y / CLASTER_SIZE) };
+    return{ (int)round(global_pos.x / CLASTER_SIZE), (int)round(global_pos.y / CLASTER_SIZE) };
 }
 
 Vector CWalls::toPixelCoordinates(const Vector& local_pos)
@@ -1286,7 +1287,7 @@ EMapBrickTypes CWalls::getMapCell(const Vector& vector) const
 
 Vector CWalls::alignToMap(const Vector& position) const
 {
-	return { CLASTER_SIZE * round(position.x / CLASTER_SIZE), CLASTER_SIZE * round(position.y/CLASTER_SIZE) };
+    return { (int)CLASTER_SIZE * round(position.x / CLASTER_SIZE), CLASTER_SIZE * round(position.y/CLASTER_SIZE) };
 }
 
 EMapBrickTypes CWalls::getMapCell(int x, int y) const

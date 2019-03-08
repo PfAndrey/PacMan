@@ -1,7 +1,5 @@
-
 #include "Geometry.h"
-
-
+#include <cmath>
 
 Vector rotateClockwise(const Vector& direction)
 {

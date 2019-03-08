@@ -40,7 +40,7 @@ private:
 	static CPacManGame* s_instance;
 public:
 	~CPacManGame();
-	static CPacManGame* CPacManGame::instance();
+    static CPacManGame* instance();
  
 };
 

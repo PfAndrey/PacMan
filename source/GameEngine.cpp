@@ -21,7 +21,7 @@ bool toBool(const std::string& str)
 
 namespace math
 {
-	int math::sign(float value)
+	int sign(float value)
 	{
 		return (value > 0) - (value < 0);
 	}
