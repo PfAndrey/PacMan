@@ -637,7 +637,7 @@ CPacManGame* CPacManGame::instance()
 CPacManGame::CPacManGame() : CGame("PacMan", {1000,850})
  {
 	textureManager().loadFromFile("texture", "res/sprites.png");
-	fontManager().loadFromFile("arial", "C:/Windows/Fonts/Calibri.ttf");
+	fontManager().loadFromFile("arial", "res/arial.ttf");
 	fontManager().loadFromFile("menu_font", "res/menu_font.ttf");
 	fontManager().loadFromFile("main_font", "res/main_font.ttf");
 	fontManager().loadFromFile("score_font", "res/score_font.ttf");
