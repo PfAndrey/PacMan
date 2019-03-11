@@ -2,8 +2,8 @@
 ----
 Cross-platform remake of PacMan (Namco, 1980) with original ghosts AI and game mechanics
 
-# Windows
-----
+## Windows
+--
 **1. Install a C++11 compiler:**  
 Visual Studio Community: https://visualstudio.microsoft.com/downloads/ or MinGW https://osdn.net/projects/mingw/releases/
 
@@ -26,8 +26,8 @@ cmake --build . --config Release
 ./PacMan
 ```
 
-# Ubuntu
-----
+## Ubuntu
+--
 **1. install git cmake and g++**
 ```console
 sudo apt-get -y install cmake git g++ 
@@ -52,8 +52,8 @@ cmake --build . --config Release
 ./Pacman
 ```
 
-# Mac OS
-----
+## Mac OS
+--
 **1. install xcode:**    
     https://developer.apple.com/xcode/
 
