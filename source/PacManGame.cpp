@@ -37,37 +37,54 @@ void CPacManGameScene::enableActors(bool value)
 
 CPacManGameScene::CPacManGameScene()
 {
-	std::cout << Vector::left.angle() << std::endl;
-	std::cout << Vector::right.angle() << std::endl;
-	std::cout << Vector::up.angle() << std::endl;
-	std::cout << Vector::down.angle() << std::endl;
-
 	CPacManGame::instance()->eventManager().subscribe(this);
 
-	m_wave_timer = new CTimer();
-	m_pill_timer = new CTimer();
-	m_born_timer = new CTimer();
-	addObject(m_wave_timer);
-	addObject(m_pill_timer);
-	addObject(m_born_timer);
+	addObject(m_wave_timer = new CTimer());
+	addObject(m_pill_timer = new CTimer());
+	addObject(m_born_timer = new CTimer());
+	addObject(m_fruit_timer = new CTimer());
 
-	m_walls = new CWalls(28, 31);
-	m_walls->getMap()->loadFromFile({ { '*',EMapBrickTypes::full },
-	{ '.',EMapBrickTypes::dot },  { 'P', EMapBrickTypes::pacman_spawn },{ ' ', EMapBrickTypes::empty },
-	{ 'p',EMapBrickTypes::pill }, {'G', EMapBrickTypes::ghost_spawn},{ 'F', EMapBrickTypes::fruit },
-	{ '1',EMapBrickTypes::door_lu },{ '2',EMapBrickTypes::door_ru },
-	{ '3',EMapBrickTypes::door_ld },{ '4',EMapBrickTypes::door_rd } },
-		"res/stage1.txt");
-
-	addObject(m_walls);
-
+	addObject(m_walls = new CWalls(28, 31));
 	addObject(m_dots = new CDots(m_walls));
+	addObject(m_pacman = new CPacman(m_walls));
+	addObject(m_fruit = new CFruit());
+
+	initGhostsStates();
+	createGui();
+
+	loadStage("stage1");
+	//loadStage("stage2");
+}
+
+void CPacManGameScene::loadStage(const std::string& name)
+{
+	m_walls->getMap()->loadFromFile(
+	{
+		{ '*', EMapBrickTypes::full },
+		{ '.', EMapBrickTypes::dot },
+		{ 'P', EMapBrickTypes::pacman_spawn },
+		{ ' ', EMapBrickTypes::empty },
+		{ 'p', EMapBrickTypes::pill },
+		{ 'G', EMapBrickTypes::ghost_spawn },
+		{ 'F', EMapBrickTypes::fruit },
+		{ '1', EMapBrickTypes::door_lu },
+		{ '2', EMapBrickTypes::door_ru },
+		{ '3', EMapBrickTypes::door_ld },
+		{ '4', EMapBrickTypes::door_rd }
+	}, "res/levels/"+ name +".txt");
+
 	m_dots->fill(m_walls);
+	
+	m_fruit_cell = m_walls->getMap()->getCells(EMapBrickTypes::fruit)[0];
+	m_fruit->setPosition(m_walls->toPixelCoordinates(m_fruit_cell + Vector(0.5, 0)));
+	m_fruit->disable();
+	m_fruit->hide();
+
+	auto pills = findObjectsByType<CPill>();
+	for (auto& pill : pills)
+		removeObject(pill);
 
 	auto pills_cells = m_walls->getMap()->getCells(EMapBrickTypes::pill);
-	m_fruit_cell = m_walls->getMap()->getCells(EMapBrickTypes::fruit)[0];
-
-
 	for (auto& pill_cell : pills_cells)
 	{
 		auto pill = new CPill();
@@ -76,11 +93,30 @@ CPacManGameScene::CPacManGameScene()
 		m_pills.push_back(pill);
 	}
 
-	addObject(m_pacman = new CPacman(m_walls));
+	m_pacman_spawn_position = m_walls->getMap()->getCells(EMapBrickTypes::pacman_spawn)[0] + Vector(0.5, 0);
+	m_walls->lining();
+}
 
-    const char* const ghost_names[]{ "Binky", "Pinky", "Inky", "Clyde" };
-	sf::Color ghost_colors[] = { sf::Color(255,0,0),sf::Color(255,105,180), sf::Color(15, 255, 225), sf::Color(255, 140, 0) };
-	CScatterState::Corner ghost_corners[] = { CScatterState::Corner::left_bottom, CScatterState::Corner::left_up, CScatterState::Corner::right_bottom, CScatterState::Corner::right_up };
+void CPacManGameScene::initGhostsStates()
+{
+	const char* const ghost_names[]{ "Binky", "Pinky", "Inky", "Clyde" };
+	
+	sf::Color ghost_colors[] = 
+	{ 
+		sf::Color(255,0,0),
+		sf::Color(255,105,180), 
+		sf::Color(15, 255, 225), 
+		sf::Color(255, 140, 0) 
+	};
+
+	CScatterState::Corner ghost_corners[] = 
+	{
+		CScatterState::Corner::left_bottom,
+		CScatterState::Corner::left_up, 
+		CScatterState::Corner::right_bottom, 
+		CScatterState::Corner::right_up 
+	};
+
 	Vector ghost_house_door_cell(13.5, 12);
 
 	for (int i = 0; i < 4; ++i)
@@ -96,33 +132,23 @@ CPacManGameScene::CPacManGameScene()
 		m_ghost_states[GhostStates::borning][ghost_names[i]] = new CBorningState(ghost_house_door_cell);
 		m_ghost_states[GhostStates::in_ghost_house][ghost_names[i]] = new CInHouseState(Vector(13.5, 12));
 	}
-	
+
 	CGhostState* st[] = { new CBinkyState(), new CPinkyState(), new CInkyState(m_ghosts[0]), new CClydeState() };
 	for (int i = 0; i < 4; ++i)
 	{
 		m_ghost_states[GhostStates::chase][ghost_names[i]] = st[i];
 		m_ghost_chase_states[i] = st[i];
 	}
+}
 
-	m_pacman_spawn_position = m_walls->getMap()->getCells(EMapBrickTypes::pacman_spawn)[0]+Vector(0.5,0);
-	m_walls->lining();
-
-	m_fruit = new CFruit();
-	m_fruit->setPosition(m_walls->toPixelCoordinates(m_fruit_cell+ Vector(0.5,0)));
-	addObject(m_fruit);
-
-	m_fruit_timer = new CTimer();
-	addObject(m_fruit_timer);
-	m_fruit->disable();
-	m_fruit->hide();
-
-// GUI
+void CPacManGameScene::createGui()
+{
 	m_big_text = new CButton();
 	m_big_text->setFontName(*CPacManGame::instance()->fontManager().get("main_font"));
 	m_big_text->setFontStyle(sf::Text::Bold);
 	m_big_text->setFontSize(30);
-	m_big_text->setFontColor(sf::Color(50,50,50));
-	m_big_text->setPosition( m_walls->size().x / 2 + 15, m_walls->size().y / 2 + 42);
+	m_big_text->setFontColor(sf::Color(50, 50, 50));
+	m_big_text->setPosition(m_walls->size().x / 2 + 15, m_walls->size().y / 2 + 42);
 	addObject(m_big_text);
 
 	m_flow_text = new CFlowText(*CPacManGame::instance()->fontManager().get("arial"));
@@ -134,9 +160,9 @@ CPacManGameScene::CPacManGameScene()
 	m_score_label->setFontSize(32);
 	m_score_label->setTextAlign(CLabel::left);
 	m_score_label->setFontColor(sf::Color(0, 119, 170));
-	addObject(m_score_label);
 	m_score_label->setString("Score: 0");
-
+	addObject(m_score_label);
+	
 
 	CLabel* lives_label = new CLabel("Lives:");
 	lives_label->setBounds(770, 100, 140, 30);
@@ -155,8 +181,8 @@ CPacManGameScene::CPacManGameScene()
 	m_dots_label->setFontSize(28);
 	m_dots_label->setTextAlign(CLabel::left);
 	m_dots_label->setFontColor(sf::Color(0, 119, 170));
-	addObject(m_dots_label);
 	m_dots_label->setString("Dots:" + toString(m_dots->amount()) + "/" + toString(m_dots->maxDots()));
+	addObject(m_dots_label);
 }
 
 void CPacManGameScene::reset()
@@ -250,7 +276,6 @@ void CPacManGameScene::update(int delta_time)
 		 }
 
 	 }
-
 
 	 // FRUIT EAT PROCESSING 
 	 if (m_walls->toMapCoordinates(m_fruit->getPosition()) == player_claster && m_fruit->isEnabled())
@@ -382,7 +407,7 @@ void CPacManGameScene::update(int delta_time)
 
 	 enableActors(false);
 	 m_big_text->setString("Get Ready!");
-	 CPacManGame::instance()->playSound("beginning");
+	 CPacManGame::instance()->playSound("begininng");
 	 
 	 int t = 0;
 	 m_wave_timer->clear();
@@ -458,169 +483,194 @@ void CPacManGameScene::update(int delta_time)
 
 //----------------------------------------------------------------------------------------------
 
-     CMainMenuScene::CMainMenuScene()
-     {
-		 CPacManGame::instance()->eventManager().subscribe(this);
+CMainMenuScene::CMainMenuScene()
+{
+	CPacManGame::instance()->eventManager().subscribe(this);
 
-		 m_logo = new CLabel();
-		 m_logo->setSprite(sf::Sprite(*CPacManGame::instance()->textureManager().get("texture"), sf::IntRect(5, 148, 240, 50)));
-		 m_logo->setBounds(240, 120, 480, 100);
-		 addObject(m_logo);
+	m_logo = new CLabel();
+	m_logo->setSprite(sf::Sprite(*CPacManGame::instance()->textureManager().get("texture"), sf::IntRect(5, 148, 240, 50)));
+	m_logo->setBounds(240, 120, 480, 100);
+	addObject(m_logo);
 
-		 m_ghost_name = new CLabel();
-		 m_ghost_name->setBounds(300, 280, 360, 75);
-		 m_ghost_name->setFontSize(42);
-		 m_ghost_name->setFontColor(sf::Color::Black);
-		 m_ghost_name->setFontName(*CPacManGame::instance()->fontManager().get("menu_font"));
-		 addObject(m_ghost_name);
-		 CTimer* timer;
-		 addObject(new CPacman());
-		 addObject(new CPill());
-		 addObject(timer = new CTimer());
+	m_ghost_name = new CLabel();
+	m_ghost_name->setBounds(300, 280, 360, 75);
+	m_ghost_name->setFontSize(42);
+	m_ghost_name->setFontColor(sf::Color::Black);
+	m_ghost_name->setFontName(*CPacManGame::instance()->fontManager().get("menu_font"));
+	addObject(m_ghost_name);
+	CTimer* timer;
+	addObject(new CPacman());
+	addObject(new CPill());
+	addObject(timer = new CTimer());
 
 
-		 static const char* captions[] = { "New game","Controls", "Exit" };
-		 for (int i = 0; i < 3; ++i)
-		 {
-			 CButton* button = new CButton();
-			 button->setBounds(400, 400 + i*70, 170, 40);
-			 button->setString(captions[i]);
-			 button->setFontName(*CPacManGame::instance()->fontManager().get("menu_font"));
-			 button->setFontColor(sf::Color::Black);
+	static const char* captions[] = { "New game","Controls", "Exit" };
+	for (int i = 0; i < 3; ++i)
+	{
+		CButton* button = new CButton();
+		button->setBounds(400, 400 + i*70, 170, 40);
+		button->setString(captions[i]);
+		button->setFontName(*CPacManGame::instance()->fontManager().get("menu_font"));
+		button->setFontColor(sf::Color::Black);
 
-			 button->setFontSize(26);
-			 addObject(button);
-			 m_buttons[i] = button;
-		 }
-		 m_buttons[2]->onClick([]() { exit(0); });
+		button->setFontSize(26);
+		addObject(button);
+		m_buttons[i] = button;
+	}
+	m_buttons[2]->onClick([]() { exit(0); });
 
-		 auto root = CPacManGame::instance()->getRootObject();
+	auto root = CPacManGame::instance()->getRootObject();
 
-		 m_buttons[0]->onClick([timer, root]() {root->findObjectByName("game_scene")->turnOn();
-		                                        root->findObjectByName<CPacManGameScene>("game_scene")->reset();
-											    root->findObjectByName("menu_scene")->turnOff();
-										        timer->clear();
-		 });
+	m_buttons[0]->onClick([timer, root]() {root->findObjectByName("game_scene")->turnOn();
+		                                root->findObjectByName<CPacManGameScene>("game_scene")->reset();
+										root->findObjectByName("menu_scene")->turnOff();
+										timer->clear();
+	});
 
-		 m_buttons[0]->setFocus(true);
+	m_buttons[0]->setFocus(true);
 
 	
-		 for (int i = 0; i < 6; ++i)
-			 m_ghost_states[i] = new CToyState((CToyState::State)i);
+	for (int i = 0; i < 6; ++i)
+		m_ghost_states[i] = new CToyState((CToyState::State)i);
 
-		 static const char* names[] = { "Binky","Pinky","Inky","Clyde" };
-		 for (int i = 0; i < 4; ++i)
-			 addObject(m_ghosts[i] = new CGhost(names[i], NULL, NULL));
+	static const char* names[] = { "Binky","Pinky","Inky","Clyde" };
+	for (int i = 0; i < 4; ++i)
+		addObject(m_ghosts[i] = new CGhost(names[i], NULL, NULL));
 			
 
 	
 
-		 reset();
-	 }
+	reset();
+}
 	 
-	 CMainMenuScene::~CMainMenuScene()
-	 {
-		 CPacManGame::instance()->eventManager().unsubcribe(this);
-	 }
+CMainMenuScene::~CMainMenuScene()
+{
+	CPacManGame::instance()->eventManager().unsubcribe(this);
+}
 
-	 void CMainMenuScene::reset()
-	 {
-		 m_ghost_name->setString("");
-		 CTimer* timer = findObjectByName<CTimer>("Timer");
+void CMainMenuScene::reset()
+{
+	m_ghost_name->setString("");
+	CTimer* timer = findObjectByName<CTimer>("Timer");
 
 
-		 auto pacman = findObjectByName<CPacman>("Player");
+	auto pacman = findObjectByName<CPacman>("Player");
  
- 		 pacman->setMovingPath({ { -50,300 },{ 650,300 },{ -50,300 } });
+ 	pacman->setMovingPath({ { -50,300 },{ 650,300 },{ -50,300 } });
 	 
-		 static const int ghosts_amount = 4;
+	static const int ghosts_amount = 4;
 
-		 for (int i = 0; i < ghosts_amount; ++i)
-		 {
-			 m_ghosts[i]->setState(m_ghost_states[i]);
-	 		 m_ghosts[i]->setMovingPath({ { -130 - i * 80, 300 }, { 550 - i * 80,300 } });
-		 }
+	for (int i = 0; i < ghosts_amount; ++i)
+	{
+		m_ghosts[i]->setState(m_ghost_states[i]);
+	 	m_ghosts[i]->setMovingPath({ { -130 - i * 80, 300 }, { 550 - i * 80,300 } });
+	}
 
-		 CPill* pill = findObjectByName<CPill>("Pill");
-		 pill->setPosition(650, 300);
+	CPill* pill = findObjectByName<CPill>("Pill");
+	pill->setPosition(650, 300);
 		 
-		 timer->add(sf::seconds(4.6), [this, pill]()
-		 {  
-			pill->setPosition({ -100, 300 });   
-		    for (int i = 0; i < ghosts_amount; ++i)
-		    {
-			 m_ghosts[i]->setState(m_ghost_states[(int)CToyState::State::Frightened]);
- 			 m_ghosts[i]->setMovingPath({ { 550 - i * 80,300 } ,{  -130 - i * 80 , 300 } });
-		    }
-		 });
+	timer->add(sf::seconds(4.6), [this, pill]()
+	{  
+		pill->setPosition({ -100, 300 });   
+		for (int i = 0; i < ghosts_amount; ++i)
+		{
+			m_ghosts[i]->setState(m_ghost_states[(int)CToyState::State::Frightened]);
+ 			m_ghosts[i]->setMovingPath({ { 550 - i * 80,300 } ,{  -130 - i * 80 , 300 } });
+		}
+	});
 
-		 for (int i = 0; i < ghosts_amount; ++i)
-			 timer->add(sf::seconds(6 + i), [this, i]() {m_ghosts[i]->setState(m_ghost_states[(int)CToyState::State::Soul]);  });
-
-
-		 timer->add(sf::seconds(12.5), [this] {
-			 for (int i = 0; i < ghosts_amount; ++i)
-				 m_ghosts[i]->setState(m_ghost_states[i]); });
+	for (int i = 0; i < ghosts_amount; ++i)
+		timer->add(sf::seconds(6 + i), [this, i]() {m_ghosts[i]->setState(m_ghost_states[(int)CToyState::State::Soul]);  });
 
 
-		 for (int i = 0; i < ghosts_amount; ++i)
-		 {
-			 float dt = i * 7;
- 			 timer->add(sf::seconds(12.5 + dt), [this,i] { m_ghosts[i]->setSpeed(0.4); m_ghosts[i]->setMovingPath({ { -50,300 },{ 650,300 } });  });
-			 timer->add(sf::seconds(14.3 + dt), [this,i] { m_ghost_name->setString(m_ghosts[i]->getName()); m_ghost_name->setFontColor(m_ghosts[i]->color()); });
- 			 timer->add(sf::seconds(16.5 + dt), [this,i] { m_ghost_name->setString(""); m_ghosts[i]->setMovingPath({ { 650,300 }, { 1100,300 } }); });
-		 }
+	timer->add(sf::seconds(12.5), [this] {
+		for (int i = 0; i < ghosts_amount; ++i)
+			m_ghosts[i]->setState(m_ghost_states[i]); });
 
 
-		 timer->add(sf::seconds(40), [this, timer] {    reset(); }); //repeat
+	for (int i = 0; i < ghosts_amount; ++i)
+	{
+		float dt = i * 7;
+ 		timer->add(sf::seconds(12.5 + dt), [this,i] { m_ghosts[i]->setSpeed(0.4); m_ghosts[i]->setMovingPath({ { -50,300 },{ 650,300 } });  });
+		timer->add(sf::seconds(14.3 + dt), [this,i] { m_ghost_name->setString(m_ghosts[i]->getName()); m_ghost_name->setFontColor(m_ghosts[i]->color()); });
+ 		timer->add(sf::seconds(16.5 + dt), [this,i] { m_ghost_name->setString(""); m_ghosts[i]->setMovingPath({ { 650,300 }, { 1100,300 } }); });
+	}
 
-		 }
+
+	timer->add(sf::seconds(40), [this, timer] {    reset(); }); //repeat
+
+}
  
-	 void CMainMenuScene::events(const sf::Event& event)
-	 {
-		 if (!isEnabled())
-			 return;
+void CMainMenuScene::events(const sf::Event& event)
+{
+	if (!isEnabled())
+		return;
+	
+	enum Action { start, down, up, none} action = none;
 
-		 if (event.type == sf::Event::KeyPressed)
-		 {
-			 if (event.key.code == sf::Keyboard::Down)
-			 {
-				 if (m_buttons[0]->hasFocus())
-				 {
-					 m_buttons[0]->setFocus(false);
-					 m_buttons[1]->setFocus(true);
-				 } else
-				 if (m_buttons[1]->hasFocus())
-				 {
-					 m_buttons[1]->setFocus(false);
-					 m_buttons[2]->setFocus(true);
-				 }
-			 }
-			 else if (event.key.code == sf::Keyboard::Up)
-				 {
-					 if (m_buttons[1]->hasFocus())
-					 {
-						 m_buttons[1]->setFocus(false);
-						 m_buttons[0]->setFocus(true);
-					 }
-					 else if (m_buttons[2]->hasFocus())
-					{
-							 m_buttons[2]->setFocus(false);
-							 m_buttons[1]->setFocus(true);
-					}
-				 }
-			 else if (event.key.code == sf::Keyboard::Space || event.key.code == sf::Keyboard::Return)
-			 {
-				 for(auto& but : m_buttons)
-					 if (but->hasFocus())
-					 {
-						 but->click();
-						 break;
-					 }
-			 }
+	if (event.type == sf::Event::KeyPressed)
+	{
+		if (event.key.code == sf::Keyboard::Space || event.key.code == sf::Keyboard::Return) action = start;
+		else if (event.key.code == sf::Keyboard::Down) action = down;
+		else if (event.key.code == sf::Keyboard::Up) action = up;
+	}
+	else if (event.type == sf::Event::JoystickMoved && event.joystickMove.axis == sf::Joystick::Axis::PovY)
+	{
+		if (event.joystickMove.position < -10) action = down;
+		else if (event.joystickMove.position > 10) action = up;
+	}
+	else if (event.type == sf::Event::JoystickButtonPressed)
+	{
+		if (event.joystickButton.button == 7)
+			action = start;
+	}
 
-			 }
-	 }
+	switch (action)
+	{
+		case(down):
+		{
+			if (m_buttons[0]->hasFocus())
+			{
+				m_buttons[0]->setFocus(false);
+				m_buttons[1]->setFocus(true);
+			}
+			else if (m_buttons[1]->hasFocus())
+			{
+				m_buttons[1]->setFocus(false);
+				m_buttons[2]->setFocus(true);
+			}
+			break;
+		}
+		case(up):
+		{
+			if (m_buttons[1]->hasFocus())
+			{
+				m_buttons[1]->setFocus(false);
+				m_buttons[0]->setFocus(true);
+			}
+			else if (m_buttons[2]->hasFocus())
+			{
+				m_buttons[2]->setFocus(false);
+				m_buttons[1]->setFocus(true);
+			}
+			break;
+		}
+		case(start):
+		{
+			for (auto& but : m_buttons)
+				if (but->hasFocus())
+				{
+					but->click();
+					break;
+				}
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
 
 	
 //---------------------------------------------------------------------------------------------- 
@@ -637,19 +687,14 @@ CPacManGame* CPacManGame::instance()
 CPacManGame::CPacManGame() : CGame("PacMan", {1000,850})
 {
     textureManager().loadFromFile("texture", "res/sprites.png");
-    fontManager().loadFromFile("arial", "res/arial.ttf");
-    fontManager().loadFromFile("menu_font", "res/menu_font.ttf");
-    fontManager().loadFromFile("main_font", "res/main_font.ttf");
-    fontManager().loadFromFile("score_font", "res/score_font.ttf");
-    soundManager().loadFromFile("beginning", "res/begininng_sound.wav");
-    soundManager().loadFromFile("eat_dot", "res/eat_dot_sound.wav");
-    soundManager().loadFromFile("ghosts_frightened", "res/ghosts_frightened_sound.wav");
-    soundManager().loadFromFile("ghost_eaten", "res/ghost_eaten_sound.wav");
-    soundManager().loadFromFile("life_lost", "res/life_lost_sound.wav");
-    soundManager().loadFromFile("ghost_regenerate", "res/ghost_regenerate_sound.wav");
-    textureManager().get("texture")->setSmooth(true);
-}
+	textureManager().get("texture")->setSmooth(true);
 
+	for (auto& font_name : { "arial", "menu_font", "main_font", "score_font" })
+		fontManager().loadFromFile(font_name, "res/fonts/" + std::string(font_name) + ".ttf");
+
+	for (auto& sound_name : { "begininng", "eat_dot", "ghosts_frightened", "ghost_eaten", "life_lost", "ghost_regenerate"})
+		soundManager().loadFromFile(sound_name, "res/sounds/" + std::string(sound_name) + ".wav");
+}
 
 CPacManGame::~CPacManGame()
 {
@@ -822,9 +867,11 @@ void CPacman::update(int delta_time)
 									    {sf::Keyboard::Right,Vector::right},
 									    {sf::Keyboard::Left, Vector::left} };
 			
-	Vector input_direction;
+	static auto input_manager = CPacManGame::instance()->inputManager();
+
+	Vector input_direction;   
 	for (auto& key : keys)
-		if (sf::Keyboard::isKeyPressed(key.first))
+		if (input_manager.isKeyPressed(key.first))
 		{
 			input_direction = key.second;
 			break;
@@ -859,8 +906,6 @@ void CPacman::update(int delta_time)
 		Vector finish_cell = m_walls->getMap()->traceLine(player_cell, Vector::right, EMapBrickTypes::empty);
 		m_waypoint_system->addPath(m_walls->toPixelCoordinates({ player_cell,finish_cell }), NORMAL_SPEED);
 	}
- 
-
 }
 	 
 void CPacman::draw(sf::RenderWindow* window)
@@ -1138,11 +1183,12 @@ CWalls::CWalls(int width, int height)
 	m_map->clear(EMapBrickTypes::empty);
 
 	texture->setSmooth(true);
-	m_sprite_sheet.load(*texture, { { 0, 0, 32, 32 },{ 32, 0, 32, 32 },{ 64, 0, 32, 32 },{ 96, 0, -32, 32 },
-	{ 64, 0, 32, 32 },{ 64, 0, 32, 32 },
-	{ 96, 0, 32, 32 },{ 96 + 32, 0, -32, 32 },{ 96, 32, 32, -32 },{ 96 + 32, 32, -32, -32 },
-	{ 128, 0, 32, 32 },{ 128 + 32, 0, -32, 32 },{ 128, 32, 32, -32 },{ 128 + 32, 32, -32, -32 },
-	{ 0, 0, 32, 32 },{ 32, 0, -32, 32 },{ 0, 32, 32, -32 },{ 32, 32, -32, -32 } });
+	m_sprite_sheet.load(*texture, { 
+	{ 0, 0, 32, 32 },{ 32, 0, 32, 32 },{ 64, 0, 32, 32 },{ 96, 0, -32, 32 },
+	{ 64, 0, 32, 32 },{ 64, 0, 32, 32 },{ 96, 0, 32, 32 },{ 96 + 32, 0, -32, 32 },
+	{ 96, 32, 32, -32 },{ 96 + 32, 32, -32, -32 },{ 128, 0, 32, 32 },{ 128 + 32, 0, -32, 32 },
+	{ 128, 32, 32, -32 },{ 128 + 32, 32, -32, -32 },{ 0, 0, 32, 32 },{ 32, 0, -32, 32 },
+	{ 0, 32, 32, -32 },{ 32, 32, -32, -32 } });
 
 	m_sprite_sheet[4].rotate(90);
 	m_sprite_sheet[4].setOrigin(0, 32);

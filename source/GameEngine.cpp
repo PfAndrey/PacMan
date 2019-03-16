@@ -47,6 +47,12 @@ bool CInputManager::isKeyJustPressed(const sf::Keyboard::Key& key)
 	if (m_keys_prev_ptr->count(key))
 		if (!(*m_keys_prev_ptr)[key] && (*m_keys_now_ptr)[key])
 			return true;
+
+	if (sf::Joystick::isConnected(0))
+	{
+		if (key == sf::Keyboard::Enter && sf::Joystick::isButtonPressed(0, 7))	return true;
+	}
+
 	return false;
 }
 bool CInputManager::isKeyJustReleased(const sf::Keyboard::Key& key)
@@ -61,6 +67,16 @@ bool CInputManager::isKeyPressed(const sf::Keyboard::Key& key)
 {
 	if (m_keys_prev_ptr->count(key))
 		return (*m_keys_now_ptr)[key];
+
+	if (sf::Joystick::isConnected(0))
+	{
+		if (key == sf::Keyboard::Left && sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) < -10)	return true;
+		if (key == sf::Keyboard::Right && sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) > 10)	return true;
+		if (key == sf::Keyboard::Up && sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) > 10)	return true;
+		if (key == sf::Keyboard::Down && sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) < -10)	return true;
+		if (key == sf::Keyboard::Enter && sf::Joystick::isButtonPressed(0,7))	return true;
+	}
+
 	return false;
 }
 

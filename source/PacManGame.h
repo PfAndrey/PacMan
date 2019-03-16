@@ -52,11 +52,14 @@ public:
 	virtual void update(int delta_time) override;
 	virtual void events(const sf::Event& event) override;
 	void reset();
+	void loadStage(const std::string& name);
 private:
 	void addScore(int);
 	void resetScore();
 	void enableActors(bool value);
 	void goToMainMenu();
+	void createGui();
+	void initGhostsStates();
 	CFruit* m_fruit;
 	Vector m_pacman_spawn_position;
 	Vector m_fruit_cell;
