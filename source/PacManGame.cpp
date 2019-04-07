@@ -835,6 +835,17 @@ void CPacman::init()
 	m_animator.get("down")->setRotation(90);
 	m_waypoint_system = new WaypointSystem();
 	addObject(m_waypoint_system);
+
+	sf::Keyboard::Key keys[] = {
+		sf::Keyboard::Key::Left,
+		sf::Keyboard::Key::Right,
+		sf::Keyboard::Up,
+		sf::Keyboard::Key::Down,
+		sf::Keyboard::Num1,
+		sf::Keyboard::Escape};
+
+	for (const auto& key: keys)
+		CPacManGame::instance()->inputManager().registerKey(key);
 }	
 
 
