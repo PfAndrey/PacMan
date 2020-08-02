@@ -39,10 +39,10 @@ CPacManGameScene::CPacManGameScene()
 {
 	CPacManGame::instance()->eventManager().subscribe(this);
 
-	addObject(m_wave_timer = new CTimer());
-	addObject(m_pill_timer = new CTimer());
-	addObject(m_born_timer = new CTimer());
-	addObject(m_fruit_timer = new CTimer());
+	addObject(m_wave_timer = new Timer());
+	addObject(m_pill_timer = new Timer());
+	addObject(m_born_timer = new Timer());
+	addObject(m_fruit_timer = new Timer());
 
 	addObject(m_walls = new CWalls(28, 31));
 	addObject(m_dots = new CDots(m_walls));
@@ -231,8 +231,7 @@ void CPacManGameScene::update(int delta_time)
 
 	 if (!isEnabled() || !m_pacman->isEnabled())
 		 return;
-
-	 	 
+	 
 	 // DOT EAT PROCESSING 
 	 Vector player_claster = m_walls->toMapCoordinates(m_pacman->getPosition());
 	 if (m_dots->eat(player_claster.x, player_claster.y))
@@ -288,47 +287,55 @@ void CPacManGameScene::update(int delta_time)
 		 addScore(1000);
 	 }
 
-	 //  MONSTER EAT PACMAN PROCESING      
-	 for (auto& obj : m_ghosts)
+	 //  MONSTER EATS PACMAN / PACMAN EATS MONSTER PROCESING      
+	 for (auto& monster : m_ghosts)
 	 {
-		 Vector monster_claster = m_walls->toMapCoordinates(obj->getPosition());
-		 if (monster_claster == player_claster && obj->currentStateType() != CGhostState::Frightened && obj->currentStateType() != CGhostState::Soul)
+		 Vector monster_claster = m_walls->toMapCoordinates(monster->getPosition());
+		 if (monster_claster == player_claster)
 		 {
-			 --m_lives;
-			 if (m_lives > 0)
+			 switch (monster->currentStateType())
 			 {
-				 m_life_bar->setValue(m_lives);
-				 CPacManGame::instance()->playSound("life_lost");
-				 enableActors(false);
-				 m_wave_timer->clear();
-				 m_wave_timer->add(sf::seconds(3), [this]() {  spawnGhosts();  spawnPacman(); });
-				 return;
+				 case(CGhostState::Soul):
+				 {
+					 //do nothing;
+					 break;
+				 }
+				 case(CGhostState::Frightened):
+				 {
+					 // pacman eats monster
+					 CPacManGame::instance()->playSound("ghost_eaten");
+					 m_flow_text->splash(m_pacman->getPosition(), "+200");
+					 addScore(200);
+					 setGhostState(monster, GhostStates::souls);
+					 break;
+				 }
+				 default:
+				 {
+					 // monster eats pacman 
+					 --m_lives;
+					 if (m_lives > 0)
+					 {
+						 m_life_bar->setValue(m_lives);
+						 CPacManGame::instance()->playSound("life_lost");
+						 enableActors(false);
+						 m_wave_timer->clear();
+						 m_wave_timer->add(sf::seconds(3), [this]() {  spawnGhosts();  spawnPacman(); });
+						 return;
+					 }
+					 else
+					 {
+						 enableActors(false);
+						 CPacManGame::instance()->playSound("life_lost");
+						 m_big_text->setString("Game over");
+						 m_wave_timer->clear();
+						 m_wave_timer->add(sf::seconds(3), std::bind(&CPacManGameScene::goToMainMenu, this));
+					 }
+					 break;
+				 }
 			 }
-			 else
-			 {
-				 enableActors(false);
-				 CPacManGame::instance()->playSound("life_lost");
-				 m_big_text->setString("Game over");
-				 m_wave_timer->clear();
-				 m_wave_timer->add(sf::seconds(3), std::bind(&CPacManGameScene::goToMainMenu, this));
-			 }
-			 break;
 		 }
-	 }
-
-	 //  PACMAN EAT MONSTER PROCESING       
-	 for (auto& obj : m_ghosts)
-	 {
-		 Vector monster_claster = m_walls->toMapCoordinates(obj->getPosition());
-		 if (monster_claster == player_claster && obj->currentStateType() == CGhostState::Frightened)
-		 {
-			 CPacManGame::instance()->playSound("ghost_eaten");
-			 m_flow_text->splash(m_pacman->getPosition(), "+200");
-			 addScore(200);
-			 setGhostState(obj,GhostStates::souls);
-		 }
-	 }
-
+	 }    
+ 
 	 //  MONSTER BORN PROCESING       
 	 for (auto& obj : m_ghosts)
 	 {
@@ -498,10 +505,10 @@ CMainMenuScene::CMainMenuScene()
 	m_ghost_name->setFontColor(sf::Color::Black);
 	m_ghost_name->setFontName(*CPacManGame::instance()->fontManager().get("menu_font"));
 	addObject(m_ghost_name);
-	CTimer* timer;
+	Timer* timer;
 	addObject(new CPacman());
 	addObject(new CPill());
-	addObject(timer = new CTimer());
+	addObject(timer = new Timer());
 
 
 	static const char* captions[] = { "New game","Controls", "Exit" };
@@ -529,16 +536,12 @@ CMainMenuScene::CMainMenuScene()
 
 	m_buttons[0]->setFocus(true);
 
-	
 	for (int i = 0; i < 6; ++i)
 		m_ghost_states[i] = new CToyState((CToyState::State)i);
 
 	static const char* names[] = { "Binky","Pinky","Inky","Clyde" };
 	for (int i = 0; i < 4; ++i)
 		addObject(m_ghosts[i] = new CGhost(names[i], NULL, NULL));
-			
-
-	
 
 	reset();
 }
@@ -551,9 +554,7 @@ CMainMenuScene::~CMainMenuScene()
 void CMainMenuScene::reset()
 {
 	m_ghost_name->setString("");
-	CTimer* timer = findObjectByName<CTimer>("Timer");
-
-
+	Timer* timer = findObjectByName<Timer>("Timer");
 	auto pacman = findObjectByName<CPacman>("Player");
  
  	pacman->setMovingPath({ { -50,300 },{ 650,300 },{ -50,300 } });
@@ -686,6 +687,7 @@ CPacManGame* CPacManGame::instance()
 
 CPacManGame::CPacManGame() : CGame("PacMan", {1000,850})
 {
+	//Load resources
     textureManager().loadFromFile("texture", "res/sprites.png");
 	textureManager().get("texture")->setSmooth(true);
 
@@ -694,6 +696,21 @@ CPacManGame::CPacManGame() : CGame("PacMan", {1000,850})
 
 	for (auto& sound_name : { "begininng", "eat_dot", "ghosts_frightened", "ghost_eaten", "life_lost", "ghost_regenerate"})
 		soundManager().loadFromFile(sound_name, "res/sounds/" + std::string(sound_name) + ".wav");
+
+	//Configure input
+	std::vector<std::pair<std::string, std::vector<std::string>>> inputs =
+	{
+		{ "Fire",{ "Space",  "[1]" } },
+		{ "Horizontal+",{ "Right" } },
+		{ "Horizontal-",{ "Left" } },
+		{ "Vertical-",{ "Up" } },
+		{ "Vertical+",{ "Down" } }
+	};
+
+	for (auto input : inputs)
+	{
+		inputManager().setupButton(input.first, input.second);
+	}
 }
 
 CPacManGame::~CPacManGame()
@@ -808,6 +825,7 @@ void CLifeBar::setValue(int value)
 }
 
 //------------------------------------------------------------------------------------------------
+
 CPacman::CPacman(CWalls* walls)
 {
 	setName("Pacman");
@@ -835,19 +853,7 @@ void CPacman::init()
 	m_animator.get("down")->setRotation(90);
 	m_waypoint_system = new WaypointSystem();
 	addObject(m_waypoint_system);
-
-	sf::Keyboard::Key keys[] = {
-		sf::Keyboard::Key::Left,
-		sf::Keyboard::Key::Right,
-		sf::Keyboard::Up,
-		sf::Keyboard::Key::Down,
-		sf::Keyboard::Num1,
-		sf::Keyboard::Escape};
-
-	for (const auto& key: keys)
-		CPacManGame::instance()->inputManager().registerKey(key);
 }	
-
 
 Rect CPacman::getBounds() const  
 {
@@ -863,36 +869,26 @@ void CPacman::update(int delta_time)
 {
 	CGameObject::update(delta_time);
 
-	if (getDirection() == Vector::right)      m_animator.play("right");
-	else if (getDirection() == Vector::left)  m_animator.play("left");
-	else if (getDirection() == Vector::up)    m_animator.play("up");
-	else if (getDirection() == Vector::down)  m_animator.play("down");
+	const auto direction = getDirection();
+
+	if (direction == Vector::right)      m_animator.play("right");
+	else if (direction == Vector::left)  m_animator.play("left");
+	else if (direction == Vector::up)    m_animator.play("up");
+	else if (direction == Vector::down)  m_animator.play("down");
 	m_animator.update(delta_time);
 
 	if (delta_time == 0 || !m_walls)
 		return;
 
-	//Controller component for player
-	static std::map<sf::Keyboard::Key,Vector> keys = {{sf::Keyboard::Up,  Vector::up},
-									    {sf::Keyboard::Down, Vector::down},
-									    {sf::Keyboard::Right,Vector::right},
-									    {sf::Keyboard::Left, Vector::left} };
-			
-	static auto input_manager = CPacManGame::instance()->inputManager();
-
 	Vector input_direction;   
-	for (auto& key : keys)
-		if (input_manager.isKeyPressed(key.first))
-		{
-			input_direction = key.second;
-			break;
-		}
-	            
-			
+	input_direction = CPacManGame::instance()->inputManager().getXYAxis();
+	if (input_direction.x && input_direction.y) input_direction.y = 0;
+	input_direction.normalize();
+
 	Vector next_cell = m_walls->toMapCoordinates(getPosition()) + input_direction;
 	bool can_turn = !(!m_walls->inBounds(next_cell) || m_walls->getMapCell(next_cell) != EMapBrickTypes::empty);
 
-	if (input_direction != Vector::zero && input_direction != getDirection() && can_turn)
+	if (input_direction != Vector::zero && input_direction != direction && can_turn)
 	{
 		Vector player_cell = m_walls->toMapCoordinates(getPosition());
 		Vector finish_cell = m_walls->getMap()->traceLine(player_cell, input_direction, EMapBrickTypes::empty);
@@ -902,20 +898,25 @@ void CPacman::update(int delta_time)
 	Vector player_pos = m_walls->toMapCoordinates(getPosition());
 
 	//Teleports
-	if ((getDirection() == Vector::left) && getPosition().x < 5)
+	if (direction == Vector::left)
 	{
-		setPosition(m_walls->toPixelCoordinates({ m_walls->getMap()->width() - 1.f, player_pos.y }));
-		Vector player_cell = m_walls->toMapCoordinates(getPosition());
-		Vector finish_cell = m_walls->getMap()->traceLine(player_cell, Vector::left, EMapBrickTypes::empty);
-		m_waypoint_system->addPath( m_walls->toPixelCoordinates({ player_cell,finish_cell }), NORMAL_SPEED);
+		if (getPosition().x < 5)
+		{
+			setPosition(m_walls->toPixelCoordinates({ m_walls->getMap()->width() - 1.f, player_pos.y }));
+			Vector player_cell = m_walls->toMapCoordinates(getPosition());
+			Vector finish_cell = m_walls->getMap()->traceLine(player_cell, Vector::left, EMapBrickTypes::empty);
+			m_waypoint_system->addPath(m_walls->toPixelCoordinates({ player_cell,finish_cell }), NORMAL_SPEED);
+		}
 	}
-
-	if ((getDirection() == Vector::right) && getPosition().x > (m_walls->size().x - 30))
+	else if (direction == Vector::right)
 	{
-		setPosition(m_walls->toPixelCoordinates({ 0.f, player_pos.y }));
-		Vector player_cell = m_walls->toMapCoordinates(getPosition());
-		Vector finish_cell = m_walls->getMap()->traceLine(player_cell, Vector::right, EMapBrickTypes::empty);
-		m_waypoint_system->addPath(m_walls->toPixelCoordinates({ player_cell,finish_cell }), NORMAL_SPEED);
+		if (getPosition().x > (m_walls->size().x - 30))
+		{
+			setPosition(m_walls->toPixelCoordinates({ 0.f, player_pos.y }));
+			Vector player_cell = m_walls->toMapCoordinates(getPosition());
+			Vector finish_cell = m_walls->getMap()->traceLine(player_cell, Vector::right, EMapBrickTypes::empty);
+			m_waypoint_system->addPath(m_walls->toPixelCoordinates({ player_cell,finish_cell }), NORMAL_SPEED);
+		}
 	}
 }
 	 
@@ -931,6 +932,7 @@ void CPacman::spawn(const Vector& position)
 	setPosition(position);
 	setDirection(Vector::right);
 }
+
 void CPacman::setMovingPath(const std::vector<Vector>& path)
 {
 	m_waypoint_system->addPath(path, NORMAL_SPEED);
@@ -961,6 +963,7 @@ void CPill::update(int delta_time)
 }
 
 //-------------------------------------------------------------------------------------------------
+
 CFruit::CFruit()
 {
 	setName("Fruit");
@@ -1025,11 +1028,9 @@ CGhost::CGhost(const std::string& name,CGameObject* target, CWalls* walls)
 	for (int i = 6; i < 10; ++i)
 		m_sprite_sheet[i].setOrigin(-4, -34);
 
-
 	m_waypoint_system = new WaypointSystem();
 	addObject(m_waypoint_system);
 }
-
 
 CGhostState::Type CGhost::currentStateType()
 {
@@ -1073,7 +1074,9 @@ void CGhost::drawMouth(sf::RenderWindow* window)
 void CGhost::draw(sf::RenderWindow* window)
 {
 	if (m_ghost_state)
-		m_ghost_state->draw({0,this,m_walls }, window);
+	{
+		m_ghost_state->draw({ 0,this,m_walls }, window);
+	}
 	else
 	{
 		drawBody(window);
@@ -1110,7 +1113,6 @@ void CGhost::setState(CGhostState* state)
 	m_ghost_state = state;
 	m_ghost_state->activate({ 0,this,m_walls });
 }
-
 
 Vector CGhost::getTargetPos() const
 {

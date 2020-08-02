@@ -1,7 +1,7 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-#include <SFML/Graphics.hpp>
+#include "SFML/Graphics.hpp"
 #include <unordered_map>
 #include <queue>
 #include <map>
@@ -28,10 +28,8 @@ public:
 	float length() const;
 	float angle() const;
 	Vector normalized() const;
-	static Vector moveTowards(const Vector& current, const Vector& target, float distance)
-	{
-		return (target - current).normalized()*distance + current;
-	}
+	void normalize();
+	static Vector moveTowards(const Vector& current, const Vector& target, float distance);
 	bool operator < (const Vector& other) const;
 	const static Vector right;
 	const static Vector left;
@@ -41,6 +39,23 @@ public:
 	//-----------------------------------------------
 	Vector(const sf::Vector2f& vector);
 	operator sf::Vector2f() const;
+};
+
+std::ostream& operator << (std::ostream& str, const Vector& vector);
+Vector toVector(const std::string& str);
+Vector rotateClockwise(const Vector& direction);
+Vector rotateAnticlockwise(const Vector& direction);
+
+namespace std
+{
+	template<>
+	struct hash<Vector>
+	{
+		size_t operator()(const Vector& v) const
+		{
+			return int(v.y) * 10000 + int(v.x);
+		}
+	};
 };
 
 class Rect
@@ -83,7 +98,7 @@ private:
 };
 
 Vector operator* (const float& k, const Vector& vector);
- 
 Vector round(const Vector& vector);
 Vector floor(const Vector& vector);
+
 #endif 

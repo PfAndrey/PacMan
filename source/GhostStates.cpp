@@ -1,6 +1,5 @@
 #include "GhostStates.h"
 
-
 sf::Vector2f toSfVec2f(const Vector& vec)
 {
 	return sf::Vector2f(vec.x, vec.y);
@@ -209,19 +208,33 @@ void CSoulState::update(const CGhostStateContex& contex)
 {
 	Vector ghost_cell = contex.walls->toMapCoordinates(contex.ghost->getPosition());
 
-	if (m_stage == 0 && !contex.ghost->isMoving())
-		contex.ghost->moveToTarget(contex.walls->toPixelCoordinates(m_ghost_house_door - Vector(0, 1)));
-
-	if (m_stage == 0 && round(ghost_cell) == round(m_ghost_house_door) - Vector(0, 1))
+	switch (m_stage)
 	{
-		contex.ghost->stop();
-		m_stage = 1;
-	}
+		case(0):
+		{
+			if (!contex.ghost->isMoving())
+			{
+				contex.ghost->moveToTarget(contex.walls->toPixelCoordinates(m_ghost_house_door - Vector(0, 1)));
+			}
 
-	if (m_stage == 1 && !contex.ghost->isMoving())
-	{
-		contex.ghost->moveToTarget(contex.walls->toPixelCoordinates(m_ghost_house_door + Vector(0, 2)));
-		m_stage = 2;
+			if (round(ghost_cell) == round(m_ghost_house_door) - Vector(0, 1))
+			{
+				contex.ghost->stop();
+				m_stage = 1;
+			}
+
+			break;
+		}
+		case(1):
+		{
+			if (!contex.ghost->isMoving())
+			{
+				contex.ghost->moveToTarget(contex.walls->toPixelCoordinates(m_ghost_house_door + Vector(0, 2)));
+				m_stage = 2;
+			}
+			break;
+		}
+
 	}
 }
 

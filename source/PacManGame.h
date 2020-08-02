@@ -74,7 +74,7 @@ private:
 	int m_score;
 	int m_lives;
 	CButton* m_big_text;
-	CTimer* m_wave_timer, *m_pill_timer, *m_born_timer, *m_fruit_timer;
+	Timer* m_wave_timer, *m_pill_timer, *m_born_timer, *m_fruit_timer;
 	CPacman* m_pacman;
 	CWalls* m_walls;
 	CDots* m_dots;
